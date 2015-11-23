@@ -24,15 +24,6 @@ module Logging
 end
 
 module Procmon
-  class Starter
-    def self.run
-      observer = Observer.new( 
-        :apps     => [ App.new { exec "sleep 10" }, App.new { exec "sleep 10" } ],
-        :checkers => [ CpuMon.new(:trigger => 80), MemMon.new(:trigger => 1024) ])
-      observer.run
-    end
-  end
-  
   class App
     include Logging
     attr_reader :pid
