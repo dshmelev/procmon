@@ -16,7 +16,7 @@ module Logging
 
     def configure_logger_for(classname)
       logger = Logger.new(STDOUT)
-#      logger.level = Logger::WARN 
+#      logger.level = Logger::WARN
       logger.progname = classname
       logger
     end
@@ -27,11 +27,11 @@ module Procmon
   class App
     include Logging
     attr_reader :pid
-  
+
     def initialize(&command)
       @command = command
     end
-  
+
     def start
       return false if !self.valid?
       @pid = Process.fork do
@@ -46,7 +46,7 @@ module Procmon
       Process.kill "TERM",@pid
       Process.wait @pid rescue 0
     end
-   
+
     def restart
       stop
       start {@command}
@@ -63,26 +63,26 @@ module Procmon
       end
       return true
     end
-  
+
     def run?
       begin
         Process.getpgid( @pid )
         true
-      rescue 
+      rescue
         false
       end
     end
-  
+
   end
-  
+
   class Observer
     include Logging
-  
+
     def initialize(params = {})
       @checkers = params.fetch(:checkers, []) # Checkers. Default empty array
       @apps     = params.fetch(:apps,     []) # Apps. Default empty array
     end
-  
+
     def run
       return false if !self.valid?
       @apps.each do |app|
@@ -108,7 +108,7 @@ module Procmon
         @checkers.each do |checker|
           checker.class.method_defined?("get")
         end
-      rescue 
+      rescue
         logger.error "Checkers is not valid"
         return false
       end
@@ -134,42 +134,43 @@ module Procmon
       end
       return true
     end
-  
+
     def check_app(app)
       @checkers.each do |checker|
-        value   = checker.get(app.pid)
+        pid = app.pid
+        value   = checker.get(pid)
         trigger = checker.trigger
-        logger.debug "#{app.pid} #{checker.class} #{value} #{trigger}"
+        logger.debug "#{pid} #{checker.class} #{value} #{trigger}"
         if value > trigger
-          logger.warn "High load! Restart app #{app.pid}"
+          logger.warn "High load! Restart app #{pid}"
           app.restart
           return
         end
       end
     end
-  
+
     def addapp(app)
       @apps << app
     end
-  
+
     def addchk(checker)
       @checkers << checker
     end
-  
+
     def delchk(checker)
       @checkers.delete(checker)
     end
-    
+
   end
-  
+
   class DataSource
     attr_reader :trigger
-  
+
     def initialize(params = {})
       @trigger = params.fetch(:trigger, nil) # Trigger high value. Default nil
       @timeline = Timeline.new(5)
     end
-  
+
     def stat
       stats = {}
       # Parsed items
@@ -189,13 +190,12 @@ module Procmon
       stats
     end
   end
-  
+
   class CpuMon < DataSource
     def get(pid)
       @pid = pid
       refresh = 1 * 1000 # in ms
       cpu_time = stat[:cputime] * 10 # in ms
-  #    cpu_time = ( @timeline[-1] || 0 ) + rand( refresh ) # Mock in ms
       @timeline.push(cpu_time)
       return 0 if @timeline[-2].nil?
       ( ( @timeline[-1] -  @timeline[-2] ) * 100 / refresh ) # to percent
@@ -203,7 +203,7 @@ module Procmon
       0
     end
   end
-  
+
   class MemMon < DataSource
     def get(pid)
       @pid = pid
@@ -212,7 +212,7 @@ module Procmon
       0
     end
   end
-  
+
   class Timeline < Array
     def initialize(max_size)
       super()
